@@ -1,6 +1,6 @@
-import { relay, relayArguments } from '../_lib/engines';
-import { handler } from '../_lib/http';
-import { authorize, MICRO } from '../_lib/x402';
+import { relay, relayArguments } from '../_lib/engines.js';
+import { handler } from '../_lib/http.js';
+import { authorize, MICRO } from '../_lib/x402.js';
 
 export default handler('POST', async (req, res) => {
   relayArguments(req.body);

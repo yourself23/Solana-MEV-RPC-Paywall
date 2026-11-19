@@ -1,6 +1,6 @@
-import { NATIVE_MINT, NETWORK } from './_lib/engines';
-import { handler } from './_lib/http';
-import { HIGH, MICRO } from './_lib/x402';
+import { NATIVE_MINT, NETWORK } from './_lib/engines.js';
+import { handler } from './_lib/http.js';
+import { HIGH, MICRO } from './_lib/x402.js';
 
 export default handler('GET', async (_req, res) => {
   const names = ['TREASURY_ADDRESS', 'SOLANA_RPC_URL', 'JUPITER_API_KEY', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'];

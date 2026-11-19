@@ -1,4 +1,4 @@
-import { fetchJson, HttpError, object, requiredEnv, text } from './http';
+import { fetchJson, HttpError, object, requiredEnv, text } from './http.js';
 
 export const NATIVE_MINT = 'So11111111111111111111111111111111111111112';
 export const NETWORK = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';

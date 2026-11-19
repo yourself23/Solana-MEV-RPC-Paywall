@@ -1,6 +1,6 @@
-import { blockPrep, jitoTip } from '../_lib/engines';
-import { handler, HttpError, text } from '../_lib/http';
-import { authorize, MICRO } from '../_lib/x402';
+import { blockPrep, jitoTip } from '../_lib/engines.js';
+import { handler, HttpError, text } from '../_lib/http.js';
+import { authorize, MICRO } from '../_lib/x402.js';
 
 export default handler('POST', async (req, res) => {
   const action = text(req.query.action, 'action');

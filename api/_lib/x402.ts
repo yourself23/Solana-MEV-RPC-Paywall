@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { assertMainnet, NETWORK, NATIVE_MINT, rpc } from './engines';
-import { header, HttpError, object, requiredEnv, text, type Request, type Response } from './http';
-import { mintCredit, rateLimit, set, takeCredit } from './redis';
+import { assertMainnet, NETWORK, NATIVE_MINT, rpc } from './engines.js';
+import { header, HttpError, object, requiredEnv, text, type Request, type Response } from './http.js';
+import { mintCredit, rateLimit, set, takeCredit } from './redis.js';
 
 export const MICRO = 5_000_000;
 export const HIGH = 50_000_000;

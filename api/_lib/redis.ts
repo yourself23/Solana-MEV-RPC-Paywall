@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { fetchJson, HttpError, object, requiredEnv } from './http';
+import { fetchJson, HttpError, object, requiredEnv } from './http.js';
 
 export async function redis(...command: (string | number)[]): Promise<unknown> {
   const url = requiredEnv('UPSTASH_REDIS_REST_URL');

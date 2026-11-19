@@ -1,6 +1,6 @@
-import { arb, blockPrep, feedArguments, jitoTip, relay, relayArguments } from './_lib/engines';
-import { handler, HttpError, object, text } from './_lib/http';
-import { authorize, HIGH, MICRO } from './_lib/x402';
+import { arb, blockPrep, feedArguments, jitoTip, relay, relayArguments } from './_lib/engines.js';
+import { handler, HttpError, object, text } from './_lib/http.js';
+import { authorize, HIGH, MICRO } from './_lib/x402.js';
 
 const tools = [
   { name: 'rpc-relay', description: 'Relay an allowed Solana JSON-RPC call (0.005 SOL)',
