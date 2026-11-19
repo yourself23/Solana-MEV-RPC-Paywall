@@ -4,6 +4,16 @@ A Vite dashboard and Vercel functions for paid Solana mainnet RPC, Jito telemetr
 
 > **Protocol compatibility:** This implements a custom `native-sol-finalized-v1` scheme using x402-v2-style HTTP envelopes. It is **not** the standard x402 Solana `exact` scheme: the latter requires a signed SPL-token transaction and a fee sponsor. Standard x402 clients will not pay this service without a custom adapter. The client submits an already-finalized transaction signature; the service never signs or submits payments.
 
+## Discovery
+
+- Production base URL: `https://solana-mev-rpc-paywall.vercel.app`
+- Discovery manifest: `GET https://solana-mev-rpc-paywall.vercel.app/api/sales`
+- Remote MCP endpoint: `POST https://solana-mev-rpc-paywall.vercel.app/api/mcp`
+- Network: Solana mainnet `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
+- Settlement: native SOL; wrapped SOL mint for quotes: `So11111111111111111111111111111111111111112`
+
+The hostname is the intended deployment address; deployment and endpoint availability must be verified by the operator. Public indexing also requires the repository and endpoints to be accessible to the relevant registry; adding metadata alone does not guarantee inclusion.
+
 ## Deployment
 
 1. Import the repository into Vercel using Node.js 22. Set `TREASURY_ADDRESS`, `SOLANA_RPC_URL`, `JUPITER_API_KEY`, `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in Vercel production environment settings. The treasury must be a mainnet recipient public key; RPC and Redis URLs must be HTTPS. RPC must support finalized `getTransaction` with `jsonParsed`, transaction version 0, and historical transaction lookup.
@@ -28,6 +38,15 @@ The required `uuid` 9.x pin has a [moderate advisory](https://github.com/advisor
 | `POST /api/credits/mint` | 0.05 SOL for 50 calls |
 | `POST /api/mcp` tools/call | Corresponding tool price |
 
+The credit bundle costs 0.05 SOL for 50 calls. `tools/list` is free. The server currently exposes four MCP tools:
+
+| Tool | Purpose | Price |
+| --- | --- | --- |
+| `rpc-relay` | Forward an allowed Solana JSON-RPC request | 0.005 SOL |
+| `jito-tip-oracle` | Jito tip floor and recent priority fee estimate | 0.005 SOL |
+| `cross-dex-arb-scanner` | Cross-DEX spreads and triangular quotes | 0.05 SOL |
+| `block-prep-bundle` | Blockhash, block height, slot and priority fee | 0.005 SOL |
+
 `amount` is an optional positive integer string in lamports (default `100000000`). `mintA` and `mintB` are caller-supplied intermediate SPL token mint public keys and must differ from each other and wrapped SOL. Intermediate tokens are used only for quotes, not settlement. Spreads compare single-DEX SOL-to-token quotes for Raydium, Orca Whirlpool and Meteora DLMM. The triangular feed requests one sequential Raydium → Orca Whirlpool → Meteora DLMM quote path. Quotes are indicative, not executable profit: latency, slippage, liquidity, fees, priority fees and transaction costs are not accounted for. A missing quote from any venue fails the request.
 
 RPC relay accepts a single JSON-RPC 2.0 request and an allowlist of methods in `api/_lib/engines.ts`, including `sendTransaction`; batches and arbitrary methods are rejected. The upstream RPC's genesis hash is checked against mainnet before use. Priority fee is the median of recent samples in micro-lamports per compute unit; Jito tip values are supplied by Jito in SOL.
@@ -39,18 +58,31 @@ Use HTTPS throughout. The challenge secret is a bearer secret: **never publish i
 For example, with Solana CLI configured for mainnet and a funded signer, `jq`, `base64`, and `curl`:
 
 ```sh
-BASE_URL=https://your-deployment.example
-curl -sS -X POST "$BASE_URL/api/mev/block-prep" > challenge.json
-PAY_TO=$(jq -r '.accepts[0].payTo' challenge.json)
-MEMO=$(jq -r '.accepts[0].extra.memo' challenge.json)
-PAYMENT_SECRET=$(jq -r '.accepts[0].extra.secret' challenge.json)
-# This route costs 0.005 SOL; verify the challenge amount and recipient yourself.
+BASE_URL=https://solana-mev-rpc-paywall.vercel.app
+
+# 1. Discover endpoints and current prices.
+curl -sS "$BASE_URL/api/sales"
+
+# 2. Request an HTTP 402 challenge. Keep the response secret.
+RESULT=$(curl -sS -w '\n%{http_code}' -X POST "$BASE_URL/api/mev/block-prep")
+HTTP_STATUS=${RESULT##*$'\n'}
+CHALLENGE=${RESULT%$'\n'*}
+printf 'HTTP status: %s\n' "$HTTP_STATUS"
+if [ "$HTTP_STATUS" != 402 ]; then printf '%s\n' "$CHALLENGE"; exit 1; fi
+PAY_TO=$(printf '%s' "$CHALLENGE" | jq -r '.accepts[0].payTo')
+MEMO=$(printf '%s' "$CHALLENGE" | jq -r '.accepts[0].extra.memo')
+PAYMENT_SECRET=$(printf '%s' "$CHALLENGE" | jq -r '.accepts[0].extra.secret')
+printf '%s\n' "$CHALLENGE" | jq '{x402Version, error, accepts: [.accepts[] | {scheme, network, amount, payTo}]}'
+
+# 3. Verify the 0.005 SOL price and recipient, pay, then retry with X-PAYMENT.
 TX_SIGNATURE=$(solana transfer "$PAY_TO" 0.005 --with-memo "$MEMO")
 solana confirm --commitment finalized "$TX_SIGNATURE"
 PAYMENT=$(jq -cn --arg signature "$TX_SIGNATURE" --arg secret "$PAYMENT_SECRET" \
   '{signature:$signature,secret:$secret}' | base64 | tr -d '\n')
-curl -sS -X POST "$BASE_URL/api/mev/block-prep" -H "PAYMENT-SIGNATURE: $PAYMENT"
+curl -sS -X POST "$BASE_URL/api/mev/block-prep" -H "X-PAYMENT: $PAYMENT"
 ```
+
+The final request retries the original call with the payment proof; it does not permit replaying a redeemed signature.
 
 `X-PAYMENT` is an alias for `PAYMENT-SIGNATURE`. The header is base64-encoded JSON containing `signature` and `secret`; it may alternatively wrap them in `payload`. For POST JSON requests, `{ "payment": { "signature": "...", "secret": "..." } }` or top-level `signature` and `paymentSecret` are accepted. For JSON-RPC requests add `payment` alongside `jsonrpc`, `id`, and `method`. `GET` feeds use headers.
 
@@ -60,10 +92,16 @@ The mint endpoint returns `{ "key": "...", "calls": 50 }`. Store the bearer key 
 
 ## MCP
 
-The stateless JSON-RPC endpoint supports `initialize`, `notifications/initialized`, `tools/list` and `tools/call` over POST. Tools are `rpc-relay`, `jito-tip-oracle`, `cross-dex-arb-scanner`, and `block-prep-bundle`. A typical client configuration is:
+The stateless JSON-RPC endpoint supports `initialize`, `notifications/initialized`, `tools/list` and `tools/call` over POST. Tools are `rpc-relay`, `jito-tip-oracle`, `cross-dex-arb-scanner`, and `block-prep-bundle`. For Claude Desktop, Cursor or Windsurf versions that support remote HTTP MCP servers, add the following to the client's MCP configuration (for example `mcp_config.json`; the path and supported transport vary by client):
 
 ```json
-{ "mcpServers": { "solana-paywall": { "url": "https://your-deployment.example/api/mcp" } } }
+{
+  "mcpServers": {
+    "solana-paywall": {
+      "url": "https://solana-mev-rpc-paywall.vercel.app/api/mcp"
+    }
+  }
+}
 ```
 
 Clients must support HTTP 402 and the custom payment adapter, or supply a prepaid `X-API-CREDIT-KEY` header. For example, discovery:
