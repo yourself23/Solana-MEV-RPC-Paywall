@@ -10,6 +10,7 @@ A Vite dashboard and Vercel functions for paid Solana mainnet RPC, Jito telemetr
 - Discovery manifest: `GET https://solana-mev-rpc-paywall.vercel.app/api/sales`
 - Static discovery: `/.well-known/x402.json`, `/openapi.json`, and `/llms.txt` at the production base URL
 - Remote MCP endpoint: `POST https://solana-mev-rpc-paywall.vercel.app/api/mcp`
+- Glama ownership verification: `GET /.well-known/glama.json` and `GET /api/mcp/.well-known/glama.json`
 - Network: Solana mainnet `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
 - Settlement: native SOL; wrapped SOL mint for quotes: `So11111111111111111111111111111111111111112`
 

@@ -8,6 +8,20 @@ import tools from '../api/_lib/mcp-tools.json' with { type: 'json' };
 
 const readJson = (path: string) => JSON.parse(readFileSync(path, 'utf8'));
 
+test('Glama verification uses the public JSON file before API fallback routing', () => {
+  const config = readJson('vercel.json');
+  assert.deepEqual(readJson('public/.well-known/glama.json'), {
+    $schema: 'https://glama.ai/mcp/schemas/connector.json',
+    claim: 'glama_claim_t_y59mtIiOKsquL2qNQHTfJc7F6w2xk0'
+  });
+  const verification = config.rewrites.findIndex((route: { source: string }) =>
+    route.source === '/api/mcp/.well-known/glama.json');
+  const apiFallback = config.rewrites.findIndex((route: { source: string }) => route.source === '/api/:path*');
+  assert.ok(verification >= 0 && apiFallback > verification);
+  assert.equal(config.rewrites[verification].destination, '/.well-known/glama.json');
+  assert.equal(config.redirects, undefined);
+});
+
 test('discovery files match the deployed routes and payment tiers', () => {
   const manifest = readJson('public/.well-known/x402.json');
   const api = readJson('public/openapi.json');

@@ -14,6 +14,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/mcp/.well-known/glama.json", "destination": "/.well-known/glama.json" },
     { "source": "/api/arb/:feed", "destination": "/api/arb/index?feed=:feed" },
     { "source": "/api/mev/:action", "destination": "/api/mev/index?action=:action" },
     { "source": "/api/:path*", "destination": "/api/not-found" },
