@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { assertMainnet, NETWORK, NATIVE_MINT, rpc } from './engines.js';
 import { header, HttpError, object, requiredEnv, text, type Request, type Response } from './http.js';
 import { mintCredit, rateLimit, set, takeCredit } from './redis.js';
+import { notifyPaymentReceived } from './notify.js';
 
 export const MICRO = 5_000_000;
 export const HIGH = 50_000_000;
@@ -94,10 +95,12 @@ export async function authorize(req: Request, res: Response, price: number, mint
     const key = hash(`credit-v1:${p.signature}:${p.secret}`);
     const remaining = await mintCredit(p.signature, hash(key));
     if (remaining === null) throw new HttpError(409, 'Payment already redeemed');
+    await notifyPaymentReceived({ amountLamports: price, signature: p.signature, route: '/api/credits/mint (50-call bundle)' });
     res.status(200).json({ key, calls: remaining });
     return false;
   }
   if (await set(`payment:${p.signature}`, 'used', { nx: true }) !== 'OK')
     throw new HttpError(409, 'Payment already redeemed');
+  await notifyPaymentReceived({ amountLamports: price, signature: p.signature, route: req.url ?? '/api/mcp' });
   return true;
 }
