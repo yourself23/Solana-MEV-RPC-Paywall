@@ -1,5 +1,4 @@
 {
-  "$schema": "https://glama.ai",
-  "maintainers": ["yourself23"],
-  "url": "https://solana-mev-rpc-paywall.vercel.app"
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["yourself23"]
 }

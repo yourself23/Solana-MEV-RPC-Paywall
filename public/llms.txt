@@ -1,0 +1,24 @@
+# Solana MEV RPC Paywall
+
+Base URL: https://solana-mev-rpc-paywall.vercel.app
+
+Solana mainnet RPC relay, Jito telemetry, and Jupiter arbitrage quote feeds.
+
+## Discovery
+
+- Sales and current treasury: GET https://solana-mev-rpc-paywall.vercel.app/api/sales
+- Payment metadata: https://solana-mev-rpc-paywall.vercel.app/.well-known/x402.json
+- API specification: https://solana-mev-rpc-paywall.vercel.app/openapi.json
+- MCP JSON-RPC endpoint: POST https://solana-mev-rpc-paywall.vercel.app/api/mcp
+
+## Prices
+
+- 0.005 SOL (5000000 lamports): POST /api/rpc/relay, /api/mev/jito-tip, /api/mev/block-prep.
+- 0.05 SOL (50000000 lamports): GET /api/arb/spreads and /api/arb/triangular; POST /api/credits/mint gives 50 prepaid calls.
+- MCP initialize and tools/list are free; tools/call costs the corresponding tool price.
+
+## Payment
+
+Settlement is native SOL via a system-program lamport transfer. The SOL/wSOL mint identifier is So11111111111111111111111111111111111111112; settlement is not an SPL wrapped-SOL transfer. The network is solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp.
+
+The service uses the custom native-sol-finalized-v1 scheme with x402-v2-style envelopes, not the standard x402 exact scheme. Standard clients need a custom adapter. Request a 402 challenge, pay its recipient with the exact memo, wait for finalization, and retry with the signature and challenge secret. Never disclose the challenge secret. Alternatively send a prepaid key in X-API-CREDIT-KEY. Payments and credits are consumed before execution; upstream failures do not automatically refund.

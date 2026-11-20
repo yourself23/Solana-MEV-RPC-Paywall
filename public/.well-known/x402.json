@@ -1,0 +1,34 @@
+{
+  "name": "Solana MEV RPC Paywall",
+  "version": 1,
+  "baseUrl": "https://solana-mev-rpc-paywall.vercel.app",
+  "discovery": {
+    "sales": "https://solana-mev-rpc-paywall.vercel.app/api/sales",
+    "openapi": "https://solana-mev-rpc-paywall.vercel.app/openapi.json",
+    "llms": "https://solana-mev-rpc-paywall.vercel.app/llms.txt",
+    "mcp": "https://solana-mev-rpc-paywall.vercel.app/api/mcp"
+  },
+  "payment": {
+    "x402Version": 2,
+    "scheme": "native-sol-finalized-v1",
+    "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+    "asset": "So11111111111111111111111111111111111111112",
+    "settlement": "Native SOL system-program transfer in lamports, not an SPL wrapped-SOL transfer.",
+    "compatibility": "Custom scheme using x402-style envelopes; standard x402 exact clients require a custom adapter.",
+    "flow": "Request a 402 challenge, transfer native SOL to its payTo with its memo, wait for finalization, and retry with a base64-encoded JSON signature and secret in PAYMENT-SIGNATURE or X-PAYMENT. Keep the challenge secret private.",
+    "treasury": "Obtain the current recipient from /api/sales or the 402 challenge."
+  },
+  "tiers": {
+    "micro": { "sol": 0.005, "lamports": 5000000 },
+    "highThroughput": { "sol": 0.05, "lamports": 50000000 }
+  },
+  "resources": [
+    { "method": "POST", "path": "/api/rpc/relay", "tier": "micro" },
+    { "method": "POST", "path": "/api/mev/jito-tip", "tier": "micro" },
+    { "method": "POST", "path": "/api/mev/block-prep", "tier": "micro" },
+    { "method": "GET", "path": "/api/arb/spreads", "tier": "highThroughput" },
+    { "method": "GET", "path": "/api/arb/triangular", "tier": "highThroughput" },
+    { "method": "POST", "path": "/api/credits/mint", "tier": "highThroughput", "calls": 50 },
+    { "method": "POST", "path": "/api/mcp", "tier": "tool-dependent", "discovery": "initialize and tools/list are free" }
+  ]
+}

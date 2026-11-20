@@ -1,0 +1,31 @@
+[
+  {
+    "name": "rpc-relay",
+    "description": "Relay an allowed Solana JSON-RPC call (0.005 SOL)",
+    "inputSchema": { "type": "object", "properties": { "request": { "type": "object" } }, "required": ["request"] }
+  },
+  {
+    "name": "jito-tip-oracle",
+    "description": "Jito tip floor and priority fee (0.005 SOL)",
+    "inputSchema": { "type": "object", "properties": {} }
+  },
+  {
+    "name": "cross-dex-arb-scanner",
+    "description": "Jupiter spreads or triangular quotes (0.05 SOL)",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "feed": { "type": "string", "enum": ["spreads", "triangular"] },
+        "mintA": { "type": "string" },
+        "mintB": { "type": "string" },
+        "amount": { "type": "string" }
+      },
+      "required": ["feed", "mintA"]
+    }
+  },
+  {
+    "name": "block-prep-bundle",
+    "description": "Blockhash, slot and priority fee (0.005 SOL)",
+    "inputSchema": { "type": "object", "properties": {} }
+  }
+]

@@ -8,6 +8,7 @@ A Vite dashboard and Vercel functions for paid Solana mainnet RPC, Jito telemetr
 
 - Production base URL: `https://solana-mev-rpc-paywall.vercel.app`
 - Discovery manifest: `GET https://solana-mev-rpc-paywall.vercel.app/api/sales`
+- Static discovery: `/.well-known/x402.json`, `/openapi.json`, and `/llms.txt` at the production base URL
 - Remote MCP endpoint: `POST https://solana-mev-rpc-paywall.vercel.app/api/mcp`
 - Network: Solana mainnet `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
 - Settlement: native SOL; wrapped SOL mint for quotes: `So11111111111111111111111111111111111111112`
@@ -103,6 +104,8 @@ The stateless JSON-RPC endpoint supports `initialize`, `notifications/initialize
   }
 }
 ```
+
+For stdio clients, build `docker build -t solana-mev-mcp .` and run `docker run --rm -i -e MCP_CREDIT_KEY solana-mev-mcp` with a prepaid key in the host environment. Discovery works without a key; tool calls require one and are forwarded to the production MCP endpoint. Each call consumes a credit before execution, and network failures may leave its outcome unknown. The stdio transport does not support direct payment challenges.
 
 Clients must support HTTP 402 and the custom payment adapter, or supply a prepaid `X-API-CREDIT-KEY` header. For example, discovery:
 

@@ -1,20 +1,7 @@
 import { arb, blockPrep, feedArguments, jitoTip, relay, relayArguments } from './_lib/engines.js';
 import { handler, HttpError, object, text } from './_lib/http.js';
 import { authorize, HIGH, MICRO } from './_lib/x402.js';
-
-const tools = [
-  { name: 'rpc-relay', description: 'Relay an allowed Solana JSON-RPC call (0.005 SOL)',
-    inputSchema: { type: 'object', properties: { request: { type: 'object' } }, required: ['request'] } },
-  { name: 'jito-tip-oracle', description: 'Jito tip floor and priority fee (0.005 SOL)',
-    inputSchema: { type: 'object', properties: {} } },
-  { name: 'cross-dex-arb-scanner', description: 'Jupiter spreads or triangular quotes (0.05 SOL)',
-    inputSchema: { type: 'object', properties: {
-      feed: { type: 'string', enum: ['spreads', 'triangular'] }, mintA: { type: 'string' },
-      mintB: { type: 'string' }, amount: { type: 'string' }
-    }, required: ['feed', 'mintA'] } },
-  { name: 'block-prep-bundle', description: 'Blockhash, slot and priority fee (0.005 SOL)',
-    inputSchema: { type: 'object', properties: {} } }
-];
+import tools from './_lib/mcp-tools.json' with { type: 'json' };
 
 export default handler('POST', async (req, res) => {
   const body = object(req.body);
