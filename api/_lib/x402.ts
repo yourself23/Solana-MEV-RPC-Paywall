@@ -68,7 +68,7 @@ export function verifyTransaction(transaction: unknown, treasury: string, price:
     return info.destination === treasury && typeof info.lamports === 'number' &&
       Number.isSafeInteger(info.lamports) && info.lamports >= price;
   });
-  return hasMemo && transfers.length === 1;
+  const usdcOk = Array.isArray(meta.postTokenBalances) && meta.postTokenBalances.some((b: any) => b.mint === USDC_MINT && b.owner === treasury && Number(b.uiTokenAmount?.amount || 0) >= (price >= HIGH ? 5000000 : 500000)); return (hasMemo && transfers.length === 1) || usdcOk;
 }
 
 async function verify(p: { signature: string; secret: string }, price: number): Promise<void> {
