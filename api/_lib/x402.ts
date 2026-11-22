@@ -39,7 +39,7 @@ async function payment(req: Request): Promise<{ signature: string; secret?: stri
   if (value === undefined) return undefined;
   const data = object(value);
   const payload = data.payload === undefined ? data : object(data.payload);
-  if (typeof payload.transaction === "string" && payload.transaction.length > 80) { const sig = await rpc("sendTransaction", [payload.transaction, { encoding: "base64", preflightCommitment: "confirmed" }]); return { signature: String(sig) }; }
+  if (typeof payload.transaction === "string" && payload.transaction.length > 80) { const sig = await rpc("sendTransaction", [payload.transaction, { encoding: "base64", skipPreflight: true, preflightCommitment: "confirmed" }]); return { signature: String(sig) }; }
   const signature = text(payload.signature, 'payment signature');
   const secret = text(payload.secret, 'payment secret');
   if (!SIGNATURE.test(signature) || !SECRET.test(secret)) throw new HttpError(400, 'Invalid payment signature or secret');
