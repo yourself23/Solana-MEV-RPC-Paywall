@@ -29,7 +29,7 @@ export function text(value: unknown, name: string): string {
 }
 
 export function requiredEnv(name: string): string {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
   if (!value) throw new HttpError(503, `Missing configuration: ${name}`);
   return value;
 }

@@ -13,14 +13,16 @@
     "scheme": "native-sol-finalized-v1",
     "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     "asset": "So11111111111111111111111111111111111111112",
-    "settlement": "Native SOL system-program transfer in lamports, not an SPL wrapped-SOL transfer.",
+    "usdcAsset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "usdcScheme": "usdc-finalized-v1",
+    "settlement": "Native SOL system-program transfer or USDC token balance increase to treasury.",
     "compatibility": "Custom scheme using x402-style envelopes; standard x402 exact clients require a custom adapter.",
-    "flow": "Request a 402 challenge, transfer native SOL to its payTo with its memo, wait for finalization, and retry with a base64-encoded JSON signature and secret in PAYMENT-SIGNATURE or X-PAYMENT. Keep the challenge secret private.",
+    "flow": "Request a 402 challenge, transfer SOL or USDC to the treasury with its memo, and send a base64-encoded JSON signature and secret, or payload.transaction and secret, in PAYMENT-SIGNATURE or X-PAYMENT. Keep the secret private and retry the signature if finalization is pending.",
     "treasury": "Obtain the current recipient from /api/sales or the 402 challenge."
   },
   "tiers": {
-    "micro": { "sol": 0.005, "lamports": 5000000 },
-    "highThroughput": { "sol": 0.05, "lamports": 50000000 }
+    "micro": { "sol": 0.005, "lamports": 5000000, "usdcAtomic": 500000 },
+    "highThroughput": { "sol": 0.05, "lamports": 50000000, "usdcAtomic": 5000000 }
   },
   "resources": [
     { "method": "POST", "path": "/api/rpc/relay", "tier": "micro" },

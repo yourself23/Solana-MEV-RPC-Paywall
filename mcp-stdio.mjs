@@ -22,7 +22,7 @@ async function handle(request) {
       send({ jsonrpc: '2.0', id, error: { code: -32602, message: 'Unknown tool' } });
       return;
     }
-    const credit = process.env.MCP_CREDIT_KEY;
+    const credit = process.env.MCP_CREDIT_KEY?.trim();
     if (!credit) {
       reply(toolError('Set MCP_CREDIT_KEY to a prepaid credit key. Obtain one via POST /api/credits/mint; see the payment documentation.'));
       return;

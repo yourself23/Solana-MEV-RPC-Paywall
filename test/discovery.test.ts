@@ -30,6 +30,9 @@ test('discovery files match the deployed routes and payment tiers', () => {
   assert.equal(api.servers[0].url, manifest.baseUrl);
   assert.equal(manifest.payment.network, NETWORK);
   assert.equal(manifest.payment.asset, NATIVE_MINT);
+  assert.equal(manifest.payment.usdcAsset, 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+  assert.equal(manifest.tiers.micro.usdcAtomic, 500000);
+  assert.equal(manifest.tiers.highThroughput.usdcAtomic, 5000000);
   assert.equal(manifest.payment.scheme, 'native-sol-finalized-v1');
   assert.equal(manifest.tiers.micro.lamports, MICRO);
   assert.equal(manifest.tiers.highThroughput.lamports, HIGH);

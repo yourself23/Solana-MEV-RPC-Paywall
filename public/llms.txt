@@ -15,10 +15,11 @@ Solana mainnet RPC relay, Jito telemetry, and Jupiter arbitrage quote feeds.
 
 - 0.005 SOL (5000000 lamports): POST /api/rpc/relay, /api/mev/jito-tip, /api/mev/block-prep.
 - 0.05 SOL (50000000 lamports): GET /api/arb/spreads and /api/arb/triangular; POST /api/credits/mint gives 50 prepaid calls.
+- USDC equivalents: 0.50 USDC per micro call and 5 USDC per high-throughput call or credit bundle.
 - MCP initialize and tools/list are free; tools/call costs the corresponding tool price.
 
 ## Payment
 
-Settlement is native SOL via a system-program lamport transfer. The SOL/wSOL mint identifier is So11111111111111111111111111111111111111112; settlement is not an SPL wrapped-SOL transfer. The network is solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp.
+Settlement is native SOL via a system-program lamport transfer or USDC via a treasury-owned token account. The SOL/wSOL mint identifier is So11111111111111111111111111111111111111112; native settlement is not an SPL wrapped-SOL transfer. The USDC mint is EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v. The network is solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp.
 
-The service uses the custom native-sol-finalized-v1 scheme with x402-v2-style envelopes, not the standard x402 exact scheme. Standard clients need a custom adapter. Request a 402 challenge, pay its recipient with the exact memo, wait for finalization, and retry with the signature and challenge secret. Never disclose the challenge secret. Alternatively send a prepaid key in X-API-CREDIT-KEY. Payments and credits are consumed before execution; upstream failures do not automatically refund.
+The service uses custom native-sol-finalized-v1 and usdc-finalized-v1 schemes with x402-v2-style envelopes, not the standard x402 exact scheme. Standard clients need a custom adapter. Request a 402 challenge, pay its recipient with the exact memo, and send the signature and challenge secret, or a signed base64 transaction and secret for broadcast. Retry a pending signature after finalization. Never disclose the challenge secret. Alternatively send a prepaid key in X-API-CREDIT-KEY. Payments and credits are consumed before execution; upstream failures do not automatically refund.

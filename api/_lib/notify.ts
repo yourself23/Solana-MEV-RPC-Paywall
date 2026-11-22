@@ -1,15 +1,18 @@
 export async function notifyPaymentReceived(params: {
   amountLamports: number;
+  amountUsdcAtomic: number;
   signature: string;
   route: string;
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) return;
   const to = process.env.ALERT_EMAIL?.trim() || 'timothyhuff25@gmail.com';
-  const sol = (params.amountLamports / 1_000_000_000).toFixed(6).replace(/\.?0+$/, '');
+  const amount = params.amountUsdcAtomic
+    ? `${params.amountUsdcAtomic / 1_000_000} USDC`
+    : `${params.amountLamports / 1_000_000_000} SOL`;
   const treasury = process.env.TREASURY_ADDRESS?.trim() || 'configured treasury';
   try {
-    await fetch('https://resend.com', {
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -19,18 +22,19 @@ export async function notifyPaymentReceived(params: {
       body: JSON.stringify({
         from: 'Solana MEV Paywall Alerts <onboarding@resend.dev>',
         to: [to],
-        subject: `[Solana-MEV-RPC-Paywall] +${sol} SOL Received`,
+        subject: `[Solana-MEV-RPC-Paywall] +${amount} Received`,
         text: [
           `New Solana Mainnet payment settled on Solana-MEV-RPC-Paywall.`,
-          `Amount: ${sol} SOL (${params.amountLamports} lamports)`,
+          `Amount: ${amount}`,
           `Route: ${params.route}`,
           `Treasury: ${treasury}`,
-          `Transaction: https://solscan.io{params.signature}`,
+          `Transaction: https://solscan.io/tx/${params.signature}`,
         ].join('\n'),
       }),
       signal: AbortSignal.timeout(4000),
     });
-  } catch {
-    // Non-blocking: never fail a paid API response if email delivery times out
+    if (!response.ok) console.error(`Payment alert failed: HTTP ${response.status}`);
+  } catch (error) {
+    console.error('Payment alert failed:', error instanceof Error ? error.name : 'unknown error');
   }
 }

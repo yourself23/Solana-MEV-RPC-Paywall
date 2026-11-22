@@ -1,8 +1,8 @@
 # Solana MEV RPC Paywall
 
-A Vite dashboard and Vercel functions for paid Solana mainnet RPC, Jito telemetry and Jupiter quote feeds. Payments are **native SOL**, not USDC. The wrapped SOL mint identifies SOL in Jupiter quotes; payments are system-program lamport transfers, not wrapped token transfers.
+A Vite dashboard and Vercel functions for paid Solana mainnet RPC, Jito telemetry and Jupiter quote feeds. Payments are native SOL or USDC. Native SOL payments are system-program lamport transfers, not wrapped token transfers.
 
-> **Protocol compatibility:** This implements a custom `native-sol-finalized-v1` scheme using x402-v2-style HTTP envelopes. It is **not** the standard x402 Solana `exact` scheme: the latter requires a signed SPL-token transaction and a fee sponsor. Standard x402 clients will not pay this service without a custom adapter. The client submits an already-finalized transaction signature; the service never signs or submits payments.
+> **Protocol compatibility:** This implements custom `native-sol-finalized-v1` and `usdc-finalized-v1` schemes using x402-v2-style HTTP envelopes, not standard x402 Solana `exact`. Standard clients need a custom adapter. The service can broadcast a client-signed transaction; it never signs payments.
 
 ## Discovery
 
@@ -12,7 +12,7 @@ A Vite dashboard and Vercel functions for paid Solana mainnet RPC, Jito telemetr
 - Remote MCP endpoint: `POST https://solana-mev-rpc-paywall.vercel.app/api/mcp`
 - Glama ownership verification: `GET /.well-known/glama.json` and `GET /api/mcp/.well-known/glama.json`
 - Network: Solana mainnet `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`
-- Settlement: native SOL; wrapped SOL mint for quotes: `So11111111111111111111111111111111111111112`
+- Settlement: native SOL or USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`); wrapped SOL mint for quotes: `So11111111111111111111111111111111111111112`
 
 The hostname is the intended deployment address; deployment and endpoint availability must be verified by the operator. Public indexing also requires the repository and endpoints to be accessible to the relevant registry; adding metadata alone does not guarantee inclusion.
 
@@ -24,6 +24,7 @@ The hostname is the intended deployment address; deployment and endpoint availab
 4. Confirm `/api/sales` reports `configured: true`, then validate actual RPC, Jupiter, Redis, Jito, routing and a small real mainnet payment before exposing the service. Configuration presence is not a health check. Restrict Vercel deployment access until verified.
 
 `npm ci`, `npm run typecheck`, `npm test` and `npm run build` run the local checks. `npm run dev` serves only the dashboard; use the Vercel CLI's `vercel dev` with configured environment variables to run functions locally. Never commit `.env` files.
+The optional Redis integration test runs when `REDIS_TEST_SERVER` and `REDIS_TEST_CLI` point to local Redis binaries; it uses an isolated server and temporary socket.
 
 The required `uuid` 9.x pin has a [moderate advisory](https://github.com/advisories/GHSA-w5hq-g745-h8pq) affecting buffer arguments in its v3/v5/v6 APIs. This scaffold does not import or call `uuid`; the pin remains solely for compatibility. Reassess the pin before using the package or changing that constraint.
 
@@ -42,6 +43,8 @@ The required `uuid` 9.x pin has a [moderate advisory](https://github.com/advisor
 
 The credit bundle costs 0.05 SOL for 50 calls. `tools/list` is free. The server currently exposes four MCP tools:
 
+The equivalent USDC tiers are 0.50 USDC per micro call and 5 USDC per high-throughput call or credit bundle.
+
 | Tool | Purpose | Price |
 | --- | --- | --- |
 | `rpc-relay` | Forward an allowed Solana JSON-RPC request | 0.005 SOL |
@@ -56,6 +59,8 @@ RPC relay accepts a single JSON-RPC 2.0 request and an allowlist of methods in `
 ## Paying
 
 Use HTTPS throughout. The challenge secret is a bearer secret: **never publish it, put it in a URL, or share it**. Each 402 response contains base64 JSON in `PAYMENT-REQUIRED` and the same JSON in the body. `accepts[0].extra.secret` is a random 32-byte hex secret and `extra.memo` is `x402:` followed by the SHA-256 hex digest of that secret. Send **one** system-program SOL transfer of at least the quoted lamports to `payTo` and include the exact memo in the same transaction. The transfer and memo can be top-level or inner instructions. The client pays transaction fees.
+
+Alternatively, transfer the USDC amount quoted in `accepts[1]` to a token account owned by `payTo`, including the same memo. Verification uses the treasury owner's net USDC token balance increase; an existing balance alone is not payment.
 
 For example, with Solana CLI configured for mainnet and a funded signer, `jq`, `base64`, and `curl`:
 
@@ -86,9 +91,9 @@ curl -sS -X POST "$BASE_URL/api/mev/block-prep" -H "X-PAYMENT: $PAYMENT"
 
 The final request retries the original call with the payment proof; it does not permit replaying a redeemed signature.
 
-`X-PAYMENT` is an alias for `PAYMENT-SIGNATURE`. The header is base64-encoded JSON containing `signature` and `secret`; it may alternatively wrap them in `payload`. For POST JSON requests, `{ "payment": { "signature": "...", "secret": "..." } }` or top-level `signature` and `paymentSecret` are accepted. For JSON-RPC requests add `payment` alongside `jsonrpc`, `id`, and `method`. `GET` feeds use headers.
+`X-PAYMENT` is an alias for `PAYMENT-SIGNATURE`. The header is base64-encoded JSON containing `signature` and `secret`; it may alternatively wrap them in `payload`. To broadcast a signed transaction, use `{ "payload": { "transaction": "<base64 wire transaction>", "secret": "<challenge secret>" } }`; the server submits it to the configured mainnet RPC with preflight skipped. For POST JSON requests, `{ "payment": { "signature": "...", "secret": "..." } }` or top-level `signature` and `paymentSecret` are accepted. For JSON-RPC requests add `payment` alongside `jsonrpc`, `id`, and `method`. `GET` feeds use headers.
 
-Only successful finalized transactions with exactly one qualifying native transfer and the matching memo are accepted. A payment signature can be redeemed once across all routes, atomically in Redis. A pending or invalid payment returns 422; retry the **same signature and secret** after finalization. A redeemed payment returns 409. Redis or RPC failure fails closed. Payments and credit deductions occur **before** the engine executes; upstream failures or a lost response do not automatically refund calls. Do not retry a consumed payment on a different request.
+Only successful finalized transactions with the matching memo and either one qualifying native transfer and treasury lamport increase, or a sufficient treasury-owned USDC balance increase, are accepted. A payment signature can be redeemed once across all routes, atomically in Redis. A pending or invalid payment returns 422 with the transaction signature; retry that **same signature and secret** after finalization rather than rebroadcasting. A redeemed payment returns 409. Redis or RPC failure fails closed. Payments and credit deductions occur **before** the engine executes; upstream failures or a lost response do not automatically refund calls. Do not retry a consumed payment on a different request.
 
 The mint endpoint returns `{ "key": "...", "calls": 50 }`. Store the bearer key securely and send it in `X-API-CREDIT-KEY` on subsequent paid calls. One credit buys one call at **either** price tier, including the 0.05 SOL feeds; this is a substantial discount and must be acceptable to the operator. Minting does not accept existing credits. Retrying the same mint payment and secret returns the same key and its remaining balance without replenishing it. Credits are charged even if an upstream call later fails. Protect the Redis database and avoid logging bearer credentials.
 

@@ -17,7 +17,7 @@ app.innerHTML = `
     </section>
     <section>
       <div class="section-title"><span>02 / QUICK START</span><span>HTTP 402</span></div>
-      <p class="copy">Request a challenge, then submit a finalized native SOL transfer with its memo and secret. This is a custom x402-style scheme, not standard x402 Solana <code>exact</code>.</p>
+      <p class="copy">Request a challenge, then submit a finalized SOL or USDC transfer with its memo and secret. This is a custom x402-style scheme, not standard x402 Solana <code>exact</code>.</p>
       <pre><code>curl -i -X POST "$BASE_URL/api/mev/block-prep"
 
 # PAYMENT-REQUIRED is base64 JSON. Transfer the stated

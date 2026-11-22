@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
 import { after, test } from 'node:test';
-import { authorize, challenge, HIGH, MICRO, verifyTransaction } from '../api/_lib/x402';
+import { authorize, challenge, HIGH, MICRO, USDC_MINT, verifyTransaction } from '../api/_lib/x402';
 import { feedArguments, NATIVE_MINT, relayArguments } from '../api/_lib/engines';
 import { HttpError, type Request, type Response } from '../api/_lib/http';
 import mcp from '../api/mcp';
@@ -12,11 +12,30 @@ const signature = '3'.repeat(87);
 const secret = 'a'.repeat(64);
 const memo = `x402:${createHash('sha256').update(secret).digest('hex')}`;
 const transaction = (price = MICRO, marker = memo, err: unknown = null) => ({
-  meta: { err, innerInstructions: [] },
-  transaction: { message: { instructions: [
+  meta: { err, innerInstructions: [], preBalances: [100], postBalances: [100 + price], preTokenBalances: [], postTokenBalances: [] },
+  transaction: { message: { accountKeys: [treasury], instructions: [
     { program: 'system', parsed: { type: 'transfer', info: { destination: treasury, lamports: price } } },
     { program: 'spl-memo', parsed: marker }
   ] } }
+});
+
+const tokenBalance = (amount: string, owner = treasury, mint = USDC_MINT) =>
+  ({ accountIndex: 1, mint, owner, uiTokenAmount: { amount } });
+
+test('USDC verifies received token delta and binds every payment to its secret memo', () => {
+  const base = transaction(0);
+  const tx = { ...base, meta: { ...base.meta, preTokenBalances: [tokenBalance('10000000')], postTokenBalances: [tokenBalance('10500000')] } };
+  assert.equal(verifyTransaction(tx, treasury, MICRO, secret), true);
+  assert.equal(verifyTransaction(tx, treasury, HIGH, secret), false);
+  assert.equal(verifyTransaction(tx, treasury, MICRO, 'b'.repeat(64)), false);
+  tx.meta.postTokenBalances[0] = tokenBalance('15000000');
+  assert.equal(verifyTransaction(tx, treasury, HIGH, secret), true);
+  tx.meta.postTokenBalances[0] = tokenBalance('10000000');
+  assert.equal(verifyTransaction(tx, treasury, MICRO, secret), false);
+  tx.meta.postTokenBalances[0] = tokenBalance('20000000', '4'.repeat(32));
+  assert.equal(verifyTransaction(tx, treasury, MICRO, secret), false);
+  tx.meta.postTokenBalances[0] = tokenBalance('20000000', treasury, 'other');
+  assert.equal(verifyTransaction(tx, treasury, MICRO, secret), false);
 });
 
 test('requires a successful finalized transaction, matching memo and sufficient native transfer', () => {
@@ -24,6 +43,9 @@ test('requires a successful finalized transaction, matching memo and sufficient 
   assert.equal(verifyTransaction(transaction(MICRO - 1), treasury, MICRO, secret), false);
   assert.equal(verifyTransaction(transaction(MICRO, 'other'), treasury, MICRO, secret), false);
   assert.equal(verifyTransaction(transaction(MICRO, memo, { InstructionError: [0, 'failed'] }), treasury, MICRO, secret), false);
+  const noDelta = transaction();
+  noDelta.meta.postBalances[0] = noDelta.meta.preBalances[0];
+  assert.equal(verifyTransaction(noDelta, treasury, MICRO, secret), false);
   assert.equal(verifyTransaction(transaction(), '4'.repeat(32), MICRO, secret), false);
   assert.equal(verifyTransaction({ meta: null }, treasury, MICRO, secret), false);
   const duplicate = transaction();
@@ -72,6 +94,9 @@ test('challenge carries a secret-bound memo in both header and body', () => {
   challenge({ url: '/api/mev/block-prep' } as Request, res, MICRO);
   assert.deepEqual(JSON.parse(Buffer.from(encoded, 'base64').toString()), payload);
   const requirement = (payload.accepts as { amount: string; extra: { memo: string; secret: string } }[])[0];
+  const accepts = payload.accepts as { asset: string; payTo: string; extra: { secret: string; memo: string } }[];
+  assert.deepEqual(accepts.map(a => a.asset), [NATIVE_MINT, USDC_MINT]);
+  assert.ok(accepts.every(a => a.payTo === treasury && a.extra.secret === requirement.extra.secret && a.extra.memo === requirement.extra.memo));
   assert.equal(requirement.amount, String(MICRO));
   assert.equal(requirement.extra.memo, `x402:${createHash('sha256').update(requirement.extra.secret).digest('hex')}`);
 });

@@ -3,13 +3,14 @@
   "info": {
     "title": "Solana MEV RPC Paywall",
     "version": "1.0.0",
-    "description": "Native SOL settlement using the custom native-sol-finalized-v1 scheme with x402-v2-style envelopes, not standard x402 exact. Retrieve the current treasury from /api/sales or the 402 challenge. Payment and credits are consumed before execution; failures are not automatically refunded."
+    "description": "SOL and USDC settlement using custom finalized schemes with x402-v2-style envelopes, not standard x402 exact. Retrieve the current treasury from /api/sales or the 402 challenge. Payment and credits are consumed before execution; failures are not automatically refunded."
   },
   "servers": [{ "url": "https://solana-mev-rpc-paywall.vercel.app" }],
   "x-payment": {
     "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     "asset": "So11111111111111111111111111111111111111112",
-    "settlement": "native SOL system-program transfer; not SPL wrapped SOL",
+    "usdcAsset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "settlement": "native SOL system-program transfer or USDC to a treasury-owned token account",
     "scheme": "native-sol-finalized-v1",
     "microLamports": 5000000,
     "highThroughputLamports": 50000000
@@ -61,7 +62,7 @@
       "amount": { "name": "amount", "in": "query", "required": false, "description": "Positive integer lamports; default 100000000", "schema": { "type": "string", "pattern": "^[1-9][0-9]{0,14}$" } }
     },
     "responses": {
-      "PaymentRequired": { "description": "Custom native-sol-finalized-v1 challenge in JSON and PAYMENT-REQUIRED. Transfer native SOL with the exact memo, wait for finalization, then retry with a base64 JSON signature and secret in PAYMENT-SIGNATURE or X-PAYMENT." }
+      "PaymentRequired": { "description": "Custom SOL or USDC challenge in JSON and PAYMENT-REQUIRED. Transfer with the exact memo, then submit base64 JSON containing a signature and secret or payload.transaction and secret in PAYMENT-SIGNATURE or X-PAYMENT." }
     }
   }
 }

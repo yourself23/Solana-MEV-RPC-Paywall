@@ -11,6 +11,7 @@ export async function redis(...command: (string | number)[]): Promise<unknown> {
     body: JSON.stringify(command)
   }));
   if (result.error) throw new HttpError(503, 'Redis command failed');
+  if (!('result' in result)) throw new HttpError(503, 'Invalid Redis response');
   return result.result;
 }
 
@@ -32,7 +33,8 @@ return 1`;
 export async function rateLimit(ip: string, limit = 60, windowMs = 60000): Promise<void> {
   const key = createHash('sha256').update(ip).digest('hex');
   const result = await redis('EVAL', windowScript, 1, `rate:${key}`, windowMs, limit, randomBytes(12).toString('hex'));
-  if (result !== 1) throw new HttpError(429, 'Rate limit exceeded');
+  if (result === 0) throw new HttpError(429, 'Rate limit exceeded');
+  if (result !== 1) throw new HttpError(503, 'Invalid rate limit response');
 }
 
 export async function takeCredit(keyHash: string): Promise<boolean> {
