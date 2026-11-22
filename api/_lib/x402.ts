@@ -6,6 +6,7 @@ import { notifyPaymentReceived } from './notify.js';
 
 export const MICRO = 5_000_000;
 export const HIGH = 50_000_000;
+export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const SIGNATURE = /^[1-9A-HJ-NP-Za-km-z]{80,90}$/;
 const SECRET = /^[a-f0-9]{64}$/;
@@ -19,14 +20,13 @@ export function challenge(req: Request, res: Response, price: number): void {
     accepts: [{
       scheme: 'native-sol-finalized-v1', network: NETWORK, asset: NATIVE_MINT,
       amount: String(price), payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 0,
-      extra: { paymentFlow: 'upfront', memo: `x402:${hash(secret)}`, secret }
-    }]
+      extra: { paymentFlow: 'upfront', memo: `x402:${hash(secret)}`, secret } },{ scheme: 'exact', network: NETWORK, asset: USDC_MINT, amount: price >= HIGH ? '5000000' : '500000', payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 0 }]
   };
   res.setHeader('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(body)).toString('base64'));
   res.status(402).json(body);
 }
 
-function payment(req: Request): { signature: string; secret: string } | undefined {
+async function payment(req: Request): Promise<{ signature: string; secret?: string } | undefined> {
   const raw = header(req, 'payment-signature') ?? header(req, 'x-payment');
   let value: unknown;
   if (raw) {
@@ -39,6 +39,7 @@ function payment(req: Request): { signature: string; secret: string } | undefine
   if (value === undefined) return undefined;
   const data = object(value);
   const payload = data.payload === undefined ? data : object(data.payload);
+  if (typeof payload.transaction === "string" && payload.transaction.length > 80) { const sig = await rpc("sendTransaction", [payload.transaction, { encoding: "base64", preflightCommitment: "confirmed" }]); return { signature: String(sig) }; }
   const signature = text(payload.signature, 'payment signature');
   const secret = text(payload.secret, 'payment secret');
   if (!SIGNATURE.test(signature) || !SECRET.test(secret)) throw new HttpError(400, 'Invalid payment signature or secret');
@@ -88,7 +89,7 @@ export async function authorize(req: Request, res: Response, price: number, mint
     if (!/^[a-f0-9]{64}$/.test(credit) || !await takeCredit(hash(credit))) throw new HttpError(401, 'Invalid or exhausted credit key');
     return true;
   }
-  const p = payment(req);
+  const p = await payment(req);
   if (!p) { challenge(req, res, price); return false; }
   await verify(p, price);
   if (mint) {
