@@ -5,7 +5,11 @@
     "version": "1.0.0",
     "description": "SOL and USDC settlement using custom finalized schemes with x402-v2-style envelopes, not standard x402 exact. Retrieve the current treasury from /api/sales or the 402 challenge. Payment and credits are consumed before execution; failures are not automatically refunded."
   },
-  "servers": [{ "url": "https://solana-mev-rpc-paywall.vercel.app" }],
+  "servers": [
+    {
+      "url": "https://solana-mev-rpc-paywall.vercel.app"
+    }
+  ],
   "x-payment": {
     "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     "asset": "So11111111111111111111111111111111111111112",
@@ -20,49 +24,275 @@
       "get": {
         "operationId": "getSales",
         "summary": "Free discovery, configuration status, treasury and pricing",
-        "responses": { "200": { "description": "Service metadata" } }
+        "responses": {
+          "200": {
+            "description": "Service metadata"
+          }
+        }
       }
     },
     "/api/rpc/relay": {
       "post": {
         "operationId": "relayRpc",
         "summary": "Relay an allowlisted Solana JSON-RPC request (0.005 SOL)",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["jsonrpc", "id", "method"], "properties": { "jsonrpc": { "const": "2.0" }, "id": { "type": ["string", "number"] }, "method": { "type": "string" }, "params": { "type": "array", "items": {} } } } } } },
-        "responses": { "200": { "description": "JSON-RPC response" }, "402": { "$ref": "#/components/responses/PaymentRequired" } }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "jsonrpc",
+                  "id",
+                  "method"
+                ],
+                "properties": {
+                  "jsonrpc": {
+                    "const": "2.0"
+                  },
+                  "id": {
+                    "type": [
+                      "string",
+                      "number"
+                    ]
+                  },
+                  "method": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC response"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
       }
     },
     "/api/mev/jito-tip": {
-      "post": { "operationId": "getJitoTip", "summary": "Jito tip floor and priority fee (0.005 SOL)", "responses": { "200": { "description": "Tip and fee" }, "402": { "$ref": "#/components/responses/PaymentRequired" } } }
+      "post": {
+        "operationId": "getJitoTip",
+        "summary": "Jito tip floor and priority fee (0.005 SOL)",
+        "responses": {
+          "200": {
+            "description": "Tip and fee"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payer": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/mev/block-prep": {
-      "post": { "operationId": "getBlockPrep", "summary": "Blockhash, slot and priority fee (0.005 SOL)", "responses": { "200": { "description": "Block preparation data" }, "402": { "$ref": "#/components/responses/PaymentRequired" } } }
+      "post": {
+        "operationId": "getBlockPrep",
+        "summary": "Blockhash, slot and priority fee (0.005 SOL)",
+        "responses": {
+          "200": {
+            "description": "Block preparation data"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payer": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/arb/spreads": {
-      "get": { "operationId": "getSpreads", "summary": "Cross-DEX quotes (0.05 SOL)", "parameters": [{ "$ref": "#/components/parameters/mintA" }, { "$ref": "#/components/parameters/amount" }], "responses": { "200": { "description": "Indicative quotes and spread" }, "402": { "$ref": "#/components/responses/PaymentRequired" } } }
+      "get": {
+        "operationId": "getSpreads",
+        "summary": "Cross-DEX quotes (0.05 SOL)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/mintA"
+          },
+          {
+            "$ref": "#/components/parameters/amount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicative quotes and spread"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
     },
     "/api/arb/triangular": {
-      "get": { "operationId": "getTriangular", "summary": "Triangular quotes (0.05 SOL)", "parameters": [{ "$ref": "#/components/parameters/mintA" }, { "name": "mintB", "in": "query", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/amount" }], "responses": { "200": { "description": "Indicative triangular quotes" }, "402": { "$ref": "#/components/responses/PaymentRequired" } } }
+      "get": {
+        "operationId": "getTriangular",
+        "summary": "Triangular quotes (0.05 SOL)",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/mintA"
+          },
+          {
+            "name": "mintB",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/amount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicative triangular quotes"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
     },
     "/api/credits/mint": {
-      "post": { "operationId": "mintCredits", "summary": "Purchase 50 prepaid calls (0.05 SOL)", "responses": { "200": { "description": "Credit key and remaining calls" }, "402": { "$ref": "#/components/responses/PaymentRequired" } } }
+      "post": {
+        "operationId": "mintCredits",
+        "summary": "Purchase 50 prepaid calls (0.05 SOL)",
+        "responses": {
+          "200": {
+            "description": "Credit key and remaining calls"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payer": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "/api/mcp": {
       "post": {
         "operationId": "mcp",
         "summary": "MCP JSON-RPC endpoint; discovery is free, calls are tool-priced",
         "description": "Methods: initialize, notifications/initialized, tools/list and tools/call. Paid calls support X-API-CREDIT-KEY or the custom payment flow.",
-        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["jsonrpc", "method"], "properties": { "jsonrpc": { "const": "2.0" }, "id": { "type": ["string", "number", "null"] }, "method": { "type": "string" }, "params": { "type": "object" } } } } } },
-        "responses": { "200": { "description": "MCP JSON-RPC response" }, "202": { "description": "Initialization notification accepted" }, "402": { "$ref": "#/components/responses/PaymentRequired" } }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "jsonrpc",
+                  "method"
+                ],
+                "properties": {
+                  "jsonrpc": {
+                    "const": "2.0"
+                  },
+                  "id": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "method": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MCP JSON-RPC response"
+          },
+          "202": {
+            "description": "Initialization notification accepted"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
       }
     }
   },
   "components": {
     "parameters": {
-      "mintA": { "name": "mintA", "in": "query", "required": true, "schema": { "type": "string" } },
-      "amount": { "name": "amount", "in": "query", "required": false, "description": "Positive integer lamports; default 100000000", "schema": { "type": "string", "pattern": "^[1-9][0-9]{0,14}$" } }
+      "mintA": {
+        "name": "mintA",
+        "in": "query",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "amount": {
+        "name": "amount",
+        "in": "query",
+        "required": false,
+        "description": "Positive integer lamports; default 100000000",
+        "schema": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,14}$"
+        }
+      }
     },
     "responses": {
-      "PaymentRequired": { "description": "Custom SOL or USDC challenge in JSON and PAYMENT-REQUIRED. Transfer with the exact memo, then submit base64 JSON containing a signature and secret or payload.transaction and secret in PAYMENT-SIGNATURE or X-PAYMENT." }
+      "PaymentRequired": {
+        "description": "Custom SOL or USDC challenge in JSON and PAYMENT-REQUIRED. Transfer with the exact memo, then submit base64 JSON containing a signature and secret or payload.transaction and secret in PAYMENT-SIGNATURE or X-PAYMENT."
+      }
     }
   }
 }
