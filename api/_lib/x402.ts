@@ -19,10 +19,10 @@ export function challenge(req: Request, res: Response, price: number): void {
     resource: { url: req.url ?? '/', description: 'SOL or USDC pay-per-call', mimeType: 'application/json' },
     accepts: [{
       scheme: 'native-sol-finalized-v1', network: NETWORK, asset: NATIVE_MINT,
-      amount: String(price), payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 0,
+      amount: String(price), payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 60,
       extra: { paymentFlow: 'upfront', memo: `x402:${hash(secret)}`, secret } },
       { scheme: 'usdc-finalized-v1', network: NETWORK, asset: USDC_MINT,
-        amount: price >= HIGH ? '5000000' : '500000', payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 0,
+        amount: price >= HIGH ? '5000000' : '500000', payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 60,
         extra: { paymentFlow: 'upfront', memo: `x402:${hash(secret)}`, secret } }]
   };
   res.setHeader('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(body)).toString('base64'));
