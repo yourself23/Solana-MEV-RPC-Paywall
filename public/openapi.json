@@ -91,14 +91,18 @@
           }
         },
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "payer"
+                ],
                 "properties": {
                   "payer": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "5Y7aEmYpCyMJanR9qjCUYf59voi6EsJrkjsJB2cNMsW"
                   }
                 }
               }
@@ -120,14 +124,18 @@
           }
         },
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "payer"
+                ],
                 "properties": {
                   "payer": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "5Y7aEmYpCyMJanR9qjCUYf59voi6EsJrkjsJB2cNMsW"
                   }
                 }
               }
@@ -201,14 +209,18 @@
           }
         },
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "payer"
+                ],
                 "properties": {
                   "payer": {
-                    "type": "string"
+                    "type": "string",
+                    "default": "5Y7aEmYpCyMJanR9qjCUYf59voi6EsJrkjsJB2cNMsW"
                   }
                 }
               }
