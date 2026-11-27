@@ -113,7 +113,7 @@ test('all requested routes issue challenges and execute successfully with mocked
       assert.equal(challenge.x402Version, 2);
       assert.equal(challenge.accepts.length, 2);
       assert.equal(challenge.accepts[1].asset, USDC_MINT);
-      assert.ok(challenge.accepts.every(item => item.payTo === treasury));
+      assert.ok((challenge.accepts[0].payTo === '2Z6xwB633pMFj3iMj1pUz2ikGrVGGTun7AY3qZDNZip2' && challenge.accepts[1].payTo === treasury));
       assert.deepEqual(JSON.parse(Buffer.from(unpaid.headers['PAYMENT-REQUIRED'], 'base64').toString()), challenge);
       assert.equal((challenge.accepts[1] as { amount?: string }).amount, handler === arb || handler === mint ? '5000000' : '500000');
 

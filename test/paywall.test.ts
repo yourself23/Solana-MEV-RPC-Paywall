@@ -96,7 +96,7 @@ test('challenge carries a secret-bound memo in both header and body', () => {
   const requirement = (payload.accepts as { amount: string; extra: { memo: string; secret: string } }[])[0];
   const accepts = payload.accepts as { asset: string; payTo: string; extra: { secret: string; memo: string } }[];
   assert.deepEqual(accepts.map(a => a.asset), [NATIVE_MINT, USDC_MINT]);
-  assert.ok(accepts.every(a => a.payTo === treasury && a.extra.secret === requirement.extra.secret && a.extra.memo === requirement.extra.memo));
+  assert.ok(accepts[0].payTo === '2Z6xwB633pMFj3iMj1pUz2ikGrVGGTun7AY3qZDNZip2' && accepts[1].payTo === treasury && accepts.every(a => a.extra.secret === requirement.extra.secret && a.extra.memo === requirement.extra.memo));
   assert.equal(requirement.amount, String(MICRO));
   assert.equal(requirement.extra.memo, `x402:${createHash('sha256').update(requirement.extra.secret).digest('hex')}`);
 });

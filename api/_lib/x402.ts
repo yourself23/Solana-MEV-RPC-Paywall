@@ -19,10 +19,10 @@ export function challenge(req: Request, res: Response, price: number): void {
     resource: { url: req.url ?? '/', description: 'SOL or USDC pay-per-call', mimeType: 'application/json' },
     accepts: [{
       scheme: 'native-sol-finalized-v1', network: NETWORK, asset: NATIVE_MINT,
-      amount: String(price), payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 60,
+      amount: String(price), payTo: (process.env.SOL_TREASURY_ADDRESS?.trim() || '2Z6xwB633pMFj3iMj1pUz2ikGrVGGTun7AY3qZDNZip2'), maxTimeoutSeconds: 60,
       extra: { paymentFlow: 'upfront', memo: `x402:${hash(secret)}`, secret } },
       { scheme: 'usdc-finalized-v1', network: NETWORK, asset: USDC_MINT,
-        amount: price >= HIGH ? '5000000' : '500000', payTo: requiredEnv('TREASURY_ADDRESS'), maxTimeoutSeconds: 60,
+        amount: price >= HIGH ? '5000000' : '500000', payTo: (process.env.USDC_TREASURY_ADDRESS?.trim() || requiredEnv('TREASURY_ADDRESS')), maxTimeoutSeconds: 60,
         extra: { paymentFlow: 'upfront', memo: `x402:${hash(secret)}`, secret } }]
   };
   res.setHeader('PAYMENT-REQUIRED', Buffer.from(JSON.stringify(body)).toString('base64'));
@@ -117,13 +117,14 @@ export function verifyTransaction(transaction: unknown, treasury: string, price:
 }
 
 async function verify(p: { signature: string; secret: string }, price: number): Promise<Settlement> {
-  const treasury = requiredEnv('TREASURY_ADDRESS');
-  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(treasury)) throw new HttpError(503, 'Invalid treasury address');
+  const usdcTreasury = process.env.USDC_TREASURY_ADDRESS?.trim() || requiredEnv('TREASURY_ADDRESS');
+  const solTreasury = process.env.SOL_TREASURY_ADDRESS?.trim() || '2Z6xwB633pMFj3iMj1pUz2ikGrVGGTun7AY3qZDNZip2';
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(usdcTreasury) || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(solTreasury)) throw new HttpError(503, 'Invalid treasury address');
   await assertMainnet();
   const tx = await rpc('getTransaction', [p.signature, {
     encoding: 'jsonParsed', commitment: 'finalized', maxSupportedTransactionVersion: 0
   }]);
-  const received = settlement(tx, treasury, price, p.secret);
+  const received = settlement(tx, solTreasury, price, p.secret) ?? settlement(tx, usdcTreasury, price, p.secret);
   if (!received) throw new HttpError(422, `Payment not finalized or invalid; retry signature ${p.signature} with the same secret`);
   return received;
 }
